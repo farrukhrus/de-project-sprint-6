@@ -55,13 +55,12 @@ def project():
         link_loader.load_satellite()
 
     # init    
-    #get_csv=get_csv(files)
-    #load_csv=load_csv()
-    #load_link=load_link()
+    get_csv=get_csv(files)
+    load_csv=load_csv()
+    load_link=load_link()
     load_satellite=load_satellite()
     
-    #get_csv >> load_csv >> load_link
-    load_satellite
+    get_csv >> load_csv >> load_link >> load_satellite
 
 project = project()
 project

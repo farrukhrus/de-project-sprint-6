@@ -50,7 +50,8 @@ class loader:
                         's3' as load_src
                     from FARRUHRUSYANDEXRU__STAGING.group_log as gl
                     left join FARRUHRUSYANDEXRU__DWH.h_users hu on gl.user_id = hu.user_id 
-                    left join FARRUHRUSYANDEXRU__DWH.h_groups hg on gl.group_id = hg.group_id;
+                    left join FARRUHRUSYANDEXRU__DWH.h_groups hg on gl.group_id = hg.group_id
+                    LIMIT 100; -- test
                 """
             )
             vertica_conn.commit()
