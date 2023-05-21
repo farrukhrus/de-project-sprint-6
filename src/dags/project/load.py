@@ -1,15 +1,16 @@
-
+from airflow.models import Variable
 import pendulum
 from airflow.decorators import dag, task
 import boto3
-#import logging
+import logging
 from project.loader import loader
 
-#log = logging.getLogger(__name__)
+
+log = logging.getLogger(__name__)
 
 def fetch_s3_file(key: str):
-    AWS_ACCESS_KEY_ID = "YCAJEWXOyY8Bmyk2eJL-hlt2K"
-    AWS_SECRET_ACCESS_KEY = "YCPs52ajb2jNXxOUsL4-pFDL1HnV2BCPd928_ZoA"
+    AWS_ACCESS_KEY_ID = Variable.get('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = Variable.get('AWS_SECRET_ACCESS_KEY')
 
     session = boto3.session.Session()
     s3_client = session.client(
@@ -30,6 +31,7 @@ def fetch_s3_file(key: str):
 )
 def project():
     files = ["group_log.csv"]
+    link_loader = loader(log=log)
 
     @task(task_id="get_csv")
     def get_csv(v_files):
@@ -38,20 +40,17 @@ def project():
     
     @task(task_id="load_csv")
     def load_csv():
-        csv_loader = loader()
-        csv_loader.load_csv(columns=['group_id', 'user_id', 'user_id_from', 'event', 'datetime'], 
+        link_loader.load_csv(columns=['group_id', 'user_id', 'user_id_from', 'event', 'datetime'], 
                             dataset_path='/data/group_log.csv',
                             schema='FARRUHRUSYANDEXRU__STAGING', 
                             table='group_log')
         
     @task(task_id="load_link")
     def load_link():
-        link_loader = loader()
         link_loader.load_link()
 
     @task(task_id="load_satellite")
     def load_satellite():
-        link_loader = loader()
         link_loader.load_satellite()
 
     # init    
@@ -59,9 +58,11 @@ def project():
     load_csv=load_csv()
     load_link=load_link()
     load_satellite=load_satellite()
-    
+
     get_csv >> load_csv >> load_link >> load_satellite
 
 project = project()
 project
+
+log.info("Finished")
 

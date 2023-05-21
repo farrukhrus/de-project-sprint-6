@@ -1,16 +1,20 @@
 import pandas as pd
+import os
 from typing import List
 import contextlib
 import vertica_python
+from logging import Logger
 
 class loader:
-    def __init__(self) -> None:
+    def __init__(self, log: Logger) -> None:
         self._db = vertica_python.connect(
             host='vertica.tgcloudenv.ru',
             port=5433,
             user='farruhrusyandexru',
-            password="JLlMNB9gxWc5A0h"
+            password="JLlMNB9gxWc5A0h",
+            autocommit=True
         )
+        self.log = log
 
     def load_csv(self, dataset_path: str,schema: str, table: str, columns: List[str]):
         df = pd.read_csv(dataset_path)
@@ -39,47 +43,15 @@ class loader:
     def load_link(self):
         vertica_conn = self._db
         with vertica_conn.cursor() as cur:
-            cur.execute(
-                """
-                    INSERT INTO FARRUHRUSYANDEXRU__DWH.l_user_group_activity
-                        (hk_l_user_group_activity, hk_user_id,hk_group_id,load_dt,load_src)
-                    select distinct hash(gl.group_id,gl.user_id),
-                        hu.hk_user_id ,
-                        hg.hk_group_id ,
-                        datetime,
-                        's3' as load_src
-                    from FARRUHRUSYANDEXRU__STAGING.group_log as gl
-                    left join FARRUHRUSYANDEXRU__DWH.h_users hu on gl.user_id = hu.user_id 
-                    left join FARRUHRUSYANDEXRU__DWH.h_groups hg on gl.group_id = hg.group_id
-                    LIMIT 100; -- test
-                """
-            )
-            vertica_conn.commit()
-            vertica_conn.close()
+            self.log.info('insert in l_user_group_activity started')
+            query=open("/lessons/dags/project/sql/insert_link.sql", "r").read()
+            cur.execute(query)
+            self.log.info('insert in l_user_group_activity finished')
+    
     def load_satellite(self):
         vertica_conn = self._db
         with vertica_conn.cursor() as cur:
-            print('insert started')
-            cur.execute(
-                """
-                    INSERT INTO FARRUHRUSYANDEXRU__DWH.s_auth_history
-                        (hk_l_user_group_activity, user_id_from,event,event_dt,load_dt,load_src)
-                    select 
-                        luga.hk_l_user_group_activity,
-                        gl.user_id_from,
-                        gl.event,
-                        gl.datetime as event_dt,
-                        now() as load_dt,
-                        's3' as load_src
-                    from FARRUHRUSYANDEXRU__STAGING.group_log as gl
-                    left join FARRUHRUSYANDEXRU__DWH.h_groups as hg on gl.group_id = hg.group_id
-                    left join FARRUHRUSYANDEXRU__DWH.h_users as hu on gl.user_id = hu.user_id
-                    left join FARRUHRUSYANDEXRU__DWH.l_user_group_activity as luga on 
-                        hg.hk_group_id = luga.hk_group_id 
-                        and hu.hk_user_id = luga.hk_user_id
-                    LIMIT 100; -- test
-                """
-            )
-            vertica_conn.commit()
-            vertica_conn.close()
-            print('insert ended')
+            self.log.info('insert in s_auth_history started')
+            query=open("/lessons/dags/project/sql/insert_satellite.sql", "r").read()
+            cur.execute(query)
+            self.log.info('insert in s_auth_history finished')
