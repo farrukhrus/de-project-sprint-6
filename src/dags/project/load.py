@@ -7,17 +7,16 @@ from project.loader import loader
 
 
 log = logging.getLogger(__name__)
+AWS_ACCESS_KEY_ID = Variable.get('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = Variable.get('AWS_SECRET_ACCESS_KEY')
 
-def fetch_s3_file(key: str):
-    AWS_ACCESS_KEY_ID = Variable.get('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = Variable.get('AWS_SECRET_ACCESS_KEY')
-
+def fetch_s3_file(key: str, aws_id: str, aws_key:str):
     session = boto3.session.Session()
     s3_client = session.client(
         service_name='s3',
         endpoint_url='https://storage.yandexcloud.net',
-        aws_access_key_id=AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+        aws_access_key_id=aws_id,
+        aws_secret_access_key=aws_id,
     )
 
     s3_client.download_file( Bucket='sprint6', Key=key, Filename='/data/'+key) 
@@ -36,7 +35,7 @@ def project():
     @task(task_id="get_csv")
     def get_csv(v_files):
         for file in v_files:
-            fetch_s3_file(file)
+            fetch_s3_file(file,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY)
     
     @task(task_id="load_csv")
     def load_csv():
